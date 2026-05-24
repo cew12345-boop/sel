@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEL 數位情緒儀表板與正向激勵 Check-in</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rulerRed: { light: '#fee2e2', border: '#fca5a5', bg: '#ef4444', text: '#991b1b' },
+                        rulerYellow: { light: '#fef9c3', border: '#fde047', bg: '#eab308', text: '#854d0e' },
+                        rulerBlue: { light: '#dbeafe', border: '#93c5fd', bg: '#3b82f6', text: '#1e40af' },
+                        rulerGreen: { light: '#dcfce7', border: '#86efac', bg: '#22c55e', text: '#166534' },
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .mood-grid {
+            background-size: 20px 20px;
+            background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+        }
+        .flip-card {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header Section -->
+    <header class="bg-gradient-to-r from-teal-600 via-indigo-600 to-violet-600 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                    <i class="fa-solid fa-heart-pulse text-2xl text-pink-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">SEL 數位情緒儀表板與正向激勵</h1>
+                    <p class="text-xs text-teal-100 font-medium">每天 5 分鐘 • 建立安全溫馨的課堂社群</p>
+                </div>
+            </div>
+            
+            <!-- Target Audience Selector (Dynamic Context Shift) -->
+            <div class="bg-black/20 p-1.5 rounded-xl backdrop-blur-sm flex gap-1 w-full md:w-auto">
+                <button onclick="switchContext('elementary')" id="btn-elem" class="flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-child-reaching text-sm"></i> 國小模式
+                </button>
+                <button onclick="switchContext('junior')" id="btn-junior" class="flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 text-white hover:bg-white/10 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap text-sm"></i> 國中模式
+                </button>
+                <button onclick="switchContext('senior')" id="btn-senior" class="flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 text-white hover:bg-white/10 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-chalkboard-user text-sm"></i> 高中 / 工作坊
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Context Info Bar -->
+    <div class="bg-amber-50 border-b border-amber-100 py-2 px-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2 text-xs md:text-sm text-amber-800">
+            <div class="flex items-center gap-2">
+                <span class="bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full text-[10px]" id="current-badge">國小模式</span>
+                <span id="context-desc" class="font-medium">適合中低年級，使用簡單色彩與直觀情緒字彙。</span>
+            </div>
+            <div class="text-indigo-600 font-medium flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> 對應 SEL：自我覺察 / 關係建立
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Sidebar: Step Navigation and Context Quick Info -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+            <!-- Steps Progress Cards -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Check-in 活動步驟</h3>
+                <nav class="space-y-2">
+                    <button onclick="scrollToStep(1)" class="step-btn w-full text-left p-3 rounded-xl border-l-4 border-indigo-600 bg-indigo-50/50 text-indigo-900 font-semibold transition-all flex items-center justify-between" id="step-nav-1">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                            <span class="text-sm">第一步：數位匿名簽到</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-indigo-400"></i>
+                    </button>
+
+                    <button onclick="scrollToStep(2)" class="step-btn w-full text-left p-3 rounded-xl border-l-4 border-transparent hover:bg-slate-50 text-slate-600 transition-all flex items-center justify-between" id="step-nav-2">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">2</span>
+                            <span class="text-sm">第二步：肯定語靜心</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                    </button>
+
+                    <button onclick="scrollToStep(3)" class="step-btn w-full text-left p-3 rounded-xl border-l-4 border-transparent hover:bg-slate-50 text-slate-600 transition-all flex items-center justify-between" id="step-nav-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">3</span>
+                            <span class="text-sm">第三步：創意破冰交流</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                    </button>
+
+                    <button onclick="scrollToStep(4)" class="step-btn w-full text-left p-3 rounded-xl border-l-4 border-transparent hover:bg-slate-50 text-slate-600 transition-all flex items-center justify-between" id="step-nav-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">4</span>
+                            <span class="text-sm">第四步：教學反思轉化</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Dashboard Analytics Panel -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex-grow">
+                <div class="flex items-center justify-between mb-3 border-b pb-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">今日班級氛圍 (情緒分佈)</h3>
+                    <span class="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded-md" id="vote-count-badge">已簽到: 5 人</span>
+                </div>
+                
+                <!-- Simple bar chart for live status -->
+                <div class="space-y-3" id="mood-analytics-bars">
+                    <div>
+                        <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rulerRed-bg"></span>高能量/負面</span>
+                            <span id="stat-red">20%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-rulerRed-bg h-full rounded-full transition-all duration-500" style="width: 20%" id="bar-red"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rulerYellow-bg"></span>高能量/正面</span>
+                            <span id="stat-yellow">40%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-rulerYellow-bg h-full rounded-full transition-all duration-500" style="width: 40%" id="bar-yellow"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rulerBlue-bg"></span>低能量/負面</span>
+                            <span id="stat-blue">20%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-rulerBlue-bg h-full rounded-full transition-all duration-500" style="width: 20%" id="bar-blue"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rulerGreen-bg"></span>低能量/正面</span>
+                            <span id="stat-green">20%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-rulerGreen-bg h-full rounded-full transition-all duration-500" style="width: 20%" id="bar-green"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Info -->
+                <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400">
+                    <p class="leading-relaxed"><i class="fa-solid fa-circle-info mr-1"></i>此看板包含模擬的全班情緒數據，以便在工作坊中做成果演示。您點擊簽到後，數據將即時刷新！</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Workspace Panel (Scrollable Main Area) -->
+        <div class="lg:col-span-9 flex flex-col gap-6" id="steps-container">
+
+            <!-- STEP 1: Digital Mood Meter Check-in -->
+            <section id="step-1" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 scroll-mt-24">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase block">Step 1 (2分鐘)</span>
+                        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2 mt-0.5">
+                            <i class="fa-regular fa-face-smile text-amber-500"></i> 數位匿名情緒簽到 (Mood Meter)
+                        </h2>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-emerald-500"></i> RULER 模式：辨識與命名
+                    </span>
+                </div>
+
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed" id="step1-guide">
+                    點擊下方「四色情緒儀表板」中符合你現在「能量高低」與「愉悅程度」的區塊，選擇合適的情緒形容詞，並留下匿名想法或挑戰。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <!-- Dynamic Mood Meter Selector -->
+                    <div>
+                        <div class="relative w-full aspect-square border-2 border-slate-300 rounded-xl overflow-hidden shadow-inner mood-grid flex flex-wrap">
+                            <!-- Mood Meter Quadrants -->
+                            <!-- Top Left: RED (High Energy, Low Pleasant) -->
+                            <button onclick="selectQuadrant('red')" id="quad-red" class="w-1/2 h-1/2 p-3 bg-red-100/70 hover:bg-red-200/80 transition-colors border-r border-b border-dashed border-slate-400/50 flex flex-col justify-between text-left relative focus:outline-none focus:ring-4 focus:ring-red-300">
+                                <span class="text-[10px] bg-red-500 text-white font-black px-1.5 py-0.5 rounded">高能量 / 負向</span>
+                                <div class="text-center w-full flex flex-col justify-center items-center flex-grow">
+                                    <span class="text-red-800 font-extrabold text-sm" id="quad-red-lbl">生氣 / 緊張</span>
+                                    <span class="text-[10px] text-red-600 font-medium mt-0.5">(如: 焦慮、煩躁)</span>
+                                </div>
+                                <span class="absolute bottom-2 right-2 text-red-400/30 text-3xl"><i class="fa-solid fa-fire"></i></span>
+                            </button>
+
+                            <!-- Top Right: YELLOW (High Energy, High Pleasant) -->
+                            <button onclick="selectQuadrant('yellow')" id="quad-yellow" class="w-1/2 h-1/2 p-3 bg-yellow-100/70 hover:bg-yellow-200/80 transition-colors border-b border-dashed border-slate-400/50 flex flex-col justify-between text-left relative focus:outline-none focus:ring-4 focus:ring-yellow-300">
+                                <span class="text-[10px] bg-yellow-500 text-slate-950 font-black px-1.5 py-0.5 rounded">高能量 / 正向</span>
+                                <div class="text-center w-full flex flex-col justify-center items-center flex-grow">
+                                    <span class="text-yellow-800 font-extrabold text-sm" id="quad-yellow-lbl">高興 / 興奮</span>
+                                    <span class="text-[10px] text-yellow-600 font-medium mt-0.5">(如: 期待、自信)</span>
+                                </div>
+                                <span class="absolute bottom-2 right-2 text-yellow-400/30 text-3xl"><i class="fa-solid fa-sun"></i></span>
+                            </button>
+
+                            <!-- Bottom Left: BLUE (Low Energy, Low Pleasant) -->
+                            <button onclick="selectQuadrant('blue')" id="quad-blue" class="w-1/2 h-1/2 p-3 bg-blue-100/70 hover:bg-blue-200/80 transition-colors border-r border-dashed border-slate-400/50 flex flex-col justify-between text-left relative focus:outline-none focus:ring-4 focus:ring-blue-300">
+                                <span class="text-[10px] bg-blue-500 text-white font-black px-1.5 py-0.5 rounded">低能量 / 負向</span>
+                                <div class="text-center w-full flex flex-col justify-center items-center flex-grow">
+                                    <span class="text-blue-800 font-extrabold text-sm" id="quad-blue-lbl">傷心 / 無聊</span>
+                                    <span class="text-[10px] text-blue-600 font-medium mt-0.5">(如: 沮喪、疲憊)</span>
+                                </div>
+                                <span class="absolute bottom-2 right-2 text-blue-400/30 text-3xl"><i class="fa-solid fa-cloud-showers-heavy"></i></span>
+                            </button>
+
+                            <!-- Bottom Right: GREEN (Low Energy, High Pleasant) -->
+                            <button onclick="selectQuadrant('green')" id="quad-green" class="w-1/2 h-1/2 p-3 bg-green-100/70 hover:bg-green-200/80 transition-colors flex flex-col justify-between text-left relative focus:outline-none focus:ring-4 focus:ring-green-300">
+                                <span class="text-[10px] bg-green-500 text-white font-black px-1.5 py-0.5 rounded">低能量 / 正向</span>
+                                <div class="text-center w-full flex flex-col justify-center items-center flex-grow">
+                                    <span class="text-green-800 font-extrabold text-sm" id="quad-green-lbl">平靜 / 輕鬆</span>
+                                    <span class="text-[10px] text-green-600 font-medium mt-0.5">(如: 放鬆、安心)</span>
+                                </div>
+                                <span class="absolute bottom-2 right-2 text-green-400/30 text-3xl"><i class="fa-solid fa-seedling"></i></span>
+                            </button>
+
+                            <!-- Absolute Axes Labeling -->
+                            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                <div class="w-full h-[1px] bg-slate-400/30"></div>
+                                <div class="h-full w-[1px] bg-slate-400/30"></div>
+                            </div>
+                            <!-- X Axis Arrow & Text -->
+                            <div class="absolute bottom-1 left-0 right-0 text-center text-[9px] text-slate-400 font-bold tracking-widest pointer-events-none flex justify-between px-6">
+                                <span>← 愉悅程度低</span>
+                                <span>愉悅程度高 →</span>
+                            </div>
+                            <!-- Y Axis Arrow & Text -->
+                            <div class="absolute left-1 top-0 bottom-0 text-center text-[9px] text-slate-400 font-bold tracking-widest pointer-events-none flex flex-col justify-between py-6 [writing-mode:vertical-lr] select-none rotate-180">
+                                <span>能量低 ↑</span>
+                                <span>能量高 ↓</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post Form -->
+                    <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 flex flex-col justify-between h-full">
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-feather text-indigo-500"></i> 情緒簽到表單
+                            </h3>
+
+                            <!-- Current Selection Status -->
+                            <div id="no-selection-msg" class="text-center py-6 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                                <i class="fa-regular fa-hand-pointer text-xl mb-1.5 animate-bounce block"></i>
+                                <span class="text-xs">請點選左側儀表板，選擇您目前的心情狀態。</span>
+                            </div>
+
+                            <div id="selection-form" class="hidden space-y-3">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1">已選取心情屬性：</label>
+                                    <div id="selected-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black">
+                                        <!-- Dynamic Badge -->
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Emotion Selection List -->
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1">請選擇精準情緒形容詞：</label>
+                                    <div class="grid grid-cols-2 gap-2" id="dynamic-words-list">
+                                        <!-- Dynamic radio options -->
+                                    </div>
+                                </div>
+
+                                <!-- Comment Form -->
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1" id="lbl-comment-box">此時此刻正面臨的一個挑戰與感受 (匿名)</label>
+                                    <textarea id="mood-comment" rows="2" class="w-full text-xs p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder:text-slate-400" placeholder="寫點什麼吧，你的感受很重要..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="mt-4 pt-3 border-t border-slate-200/60">
+                            <button id="btn-submit-mood" onclick="submitCheckin()" disabled class="w-full py-2.5 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5">
+                                <i class="fa-regular fa-paper-plane"></i> 送出匿名情緒簽到
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Wall / Realtime comments -->
+                <div class="mt-8">
+                    <h3 class="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-comments text-indigo-500"></i> 班級匿名情緒留言牆
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="mood-wall">
+                        <!-- Initial Mock Comments based on selected context -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 2: Affirmation & Mindfulness Breathing -->
+            <section id="step-2" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 scroll-mt-24">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase block">Step 2 (2分鐘)</span>
+                        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2 mt-0.5">
+                            <i class="fa-solid fa-leaf text-teal-500 animate-pulse-slow"></i> 正向自我激勵語句與靜心 (Mindfulness)
+                        </h2>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-brain text-purple-500"></i> 成長型思維與情緒調節
+                    </span>
+                </div>
+
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+                    引導學生利用正向肯定語 (Affirmations) 來對抗焦慮與「情感過濾器」，同時搭配 4-7-8 呼吸靜心法快速平穩課堂氣氛。
+                </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Interactive Breathing Circle -->
+                    <div class="lg:col-span-5 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-5 border border-teal-100/50 flex flex-col items-center justify-center text-center">
+                        <span class="text-xs font-bold text-teal-800 bg-teal-100 px-3 py-1 rounded-full mb-4">4-7-8 專注靜心呼吸</span>
+                        
+                        <!-- Visual Breathing Indicator -->
+                        <div class="relative w-40 h-40 flex items-center justify-center">
+                            <!-- Outer Pulsing Circle -->
+                            <div id="breath-circle" class="w-24 h-24 rounded-full bg-teal-400/40 absolute transition-all duration-[4000ms] ease-in-out"></div>
+                            <!-- Inner Core Circle -->
+                            <div class="w-16 h-16 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-md z-10">
+                                <span id="breath-inner-timer">00</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h4 id="breath-text" class="font-extrabold text-teal-900 text-base">準備好，點擊下方按鈕</h4>
+                            <p id="breath-subtext" class="text-xs text-teal-700/80 mt-1">深呼吸，將專注力帶回自己身上</p>
+                        </div>
+
+                        <button onclick="toggleBreathing()" id="btn-breathing" class="mt-5 px-6 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> 開始呼吸練習 (60秒)
+                        </button>
+                    </div>
+
+                    <!-- Right: Draw Affirmation Cards -->
+                    <div class="lg:col-span-7 bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> 成長思維正向卡牌
+                                </h3>
+                                <button onclick="drawAffirmationCard()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-arrows-rotate"></i> 隨機抽取一張卡牌
+                                </button>
+                            </div>
+
+                            <!-- Flip Card Wrapper -->
+                            <div class="flex justify-center my-2">
+                                <div id="card-element" class="flip-card w-full max-w-sm h-48 cursor-pointer group" onclick="this.classList.toggle('flipped')">
+                                    <div class="flip-card-inner relative w-full h-full text-center transition-transform duration-500 transform shadow-md rounded-2xl">
+                                        <!-- Card Front (Click to Flip) -->
+                                        <div class="flip-card-front absolute inset-0 bg-gradient-to-tr from-indigo-500 to-violet-600 text-white flex flex-col items-center justify-center p-6 rounded-2xl border border-indigo-400">
+                                            <i class="fa-solid fa-star-and-crescent text-3xl text-yellow-200 animate-spin-slow mb-3"></i>
+                                            <span class="text-base font-black tracking-wide">點擊抽取你的正向激勵卡</span>
+                                            <span class="text-[11px] text-indigo-200 mt-1">「今日我想對自己說的一句話...」</span>
+                                        </div>
+                                        <!-- Card Back (Revealed Affirmation) -->
+                                        <div class="flip-card-back absolute inset-0 bg-white text-slate-800 flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-indigo-400">
+                                            <span class="text-[11px] text-indigo-500 font-extrabold uppercase tracking-widest mb-1.5"><i class="fa-solid fa-quote-left mr-1"></i> 今日自我激勵卡</span>
+                                            <p id="affirmation-text" class="text-base font-extrabold text-slate-800 leading-relaxed px-4">
+                                                「錯誤會幫助我學習，我今天會更加努力！」
+                                            </p>
+                                            <div class="absolute bottom-4 text-[10px] text-slate-400 flex items-center gap-1.5">
+                                                <i class="fa-regular fa-lightbulb text-amber-500"></i> <span>將注意力放在這句肯定語上</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Customization -->
+                        <div class="mt-4 pt-3 border-t border-slate-200 flex flex-col sm:flex-row gap-2">
+                            <input id="custom-affirmation" type="text" placeholder="自訂今天想對自己說的話..." class="flex-grow text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="setCustomAffirmation()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-circle-plus"></i> 生成卡牌
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 3: Icebreaker Card Generator -->
+            <section id="step-3" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 scroll-mt-24">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase block">Step 3 (3分鐘)</span>
+                        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2 mt-0.5">
+                            <i class="fa-regular fa-handshake text-indigo-500"></i> 創意破冰問候與交流
+                        </h2>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-blue-500"></i> 建立課堂歸屬感與對等連結
+                    </span>
+                </div>
+
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+                    請與周邊的夥伴組成兩人小組，藉由輸入你的「名字」與「當下心情形容詞」，生成你的專屬破冰名片，並與夥伴分享今日的激勵卡牌。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Generator Inputs -->
+                    <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4">
+                        <h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-pen text-indigo-500"></i> 破冰自我介紹生成器
+                        </h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 block mb-1">你的名字</label>
+                                <input id="ice-name" type="text" placeholder="例: Zara" class="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 block mb-1">當下情緒形容詞 (點擊建議快速填入)</label>
+                                <input id="ice-adj" type="text" placeholder="例: 充滿熱情的" class="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
+                                
+                                <div class="flex flex-wrap gap-1 mt-2" id="ice-adj-suggestions">
+                                    <!-- Dynamic chips based on context -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="generateIceCard()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-id-card"></i> 產生數位破冰名片
+                        </button>
+                    </div>
+
+                    <!-- Card Preview / Output -->
+                    <div class="flex flex-col items-center justify-center">
+                        <div id="ice-card-preview" class="w-full max-w-sm rounded-2xl bg-gradient-to-br from-indigo-100 to-slate-50 p-6 border-2 border-dashed border-indigo-200 text-center relative overflow-hidden min-h-[220px] flex flex-col justify-center items-center">
+                            <div class="text-slate-400 flex flex-col items-center">
+                                <i class="fa-solid fa-id-card-clip text-4xl mb-2"></i>
+                                <p class="text-xs font-medium">填寫左側表單，產生專屬破冰小卡</p>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons (Copy to clipboard) -->
+                        <div id="ice-actions" class="hidden mt-4 flex gap-2 w-full max-w-sm">
+                            <button onclick="copyIceCardText()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-copy"></i> 複製文字去分享
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 4: Debrief & Lesson Plan Export -->
+            <section id="step-4" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 scroll-mt-24">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase block">Step 4 (2分鐘)</span>
+                        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2 mt-0.5">
+                            <i class="fa-regular fa-lightbulb text-amber-500 animate-bounce"></i> 反思與教學轉化 (Debrief)
+                        </h2>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-route text-violet-500"></i> 教師後設思考與落地引導
+                    </span>
+                </div>
+
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+                    體驗完三個互動環節後，講師引導大家跳脫單純參與者身份，思考這個 Check-in 對於未來實務教學的益處，並可以如何進行班級微調。
+                </p>
+
+                <!-- Interactive Question Prompt Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100/50 flex gap-4">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-question text-base"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-indigo-900 mb-1">引導反思問題 (Debrief Questions)</h4>
+                            <ul class="text-xs text-indigo-800/90 space-y-1.5 list-disc pl-4" id="debrief-questions-list">
+                                <!-- Dynamic reflection questions -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-teal-50/50 rounded-2xl p-5 border border-teal-100/50 flex gap-4">
+                        <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-graduation-cap text-base"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-teal-900 mb-1">本年級教學轉化指引</h4>
+                            <p class="text-xs text-teal-800/90 leading-relaxed" id="adaptation-guide">
+                                <!-- Dynamic lesson adaptation guides -->
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export / Integration Toolkit -->
+                <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-md shadow-indigo-100">
+                            <i class="fa-solid fa-download"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-extrabold text-slate-800">一鍵複製：當前年級 SEL 微型教案卡</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">直接將精简版 5 分鐘 Check-in 教案與肯定語句複製到您的備課系統中。</p>
+                        </div>
+                    </div>
+                    <button onclick="exportLessonPlan()" class="w-full md:w-auto px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-copy"></i> 複製微型教案
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Custom Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 max-w-sm">
+            <span id="toast-icon-wrapper" class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-check text-white"></i>
+            </span>
+            <div class="flex-grow">
+                <p id="toast-msg" class="text-xs font-bold">通知訊息</p>
+            </div>
+            <button onclick="dismissToast()" class="text-slate-400 hover:text-white transition-all text-sm pl-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p class="font-semibold text-slate-300">SEL 暖身活動工坊 - 先照顧好自己，才能照顧孩子 ❤️</p>
+            <p>設計依據 2026 最新社會情緒學習 (SEL) 核心框架 RULER 與 5分鐘微型簽到概念</p>
+            <div class="flex items-center justify-center gap-4 pt-1">
+                <a href="#step-1" class="hover:text-white transition-colors">1.情緒儀表板</a>
+                <a href="#step-2" class="hover:text-white transition-colors">2.呼吸靜心</a>
+                <a href="#step-3" class="hover:text-white transition-colors">3.破冰問候</a>
+                <a href="#step-4" class="hover:text-white transition-colors">4.教學後設思維</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS Programming Logic -->
+    <script>
+        // Global State
+        let currentContext = 'elementary'; // 'elementary', 'junior', 'senior'
+        let selectedQuadrant = null; // 'red', 'yellow', 'blue', 'green'
+        let selectedWord = '';
+        let activeAffirmation = '';
+        let breathingInterval = null;
+        let breathingTimer = 0;
+        let breathingState = 'idle'; // 'idle', 'inhale', 'hold', 'exhale'
+
+        // Total checkin tracker
+        const votes = { red: 1, yellow: 2, blue: 1, green: 1 }; // Initial mock data (5 mock users)
+
+        // Database/Content Dictionary for the three different age levels
+        const contextData = {
+            elementary: {
+                badge: '國小模式',
+                desc: '適合中低年級，使用簡單、生動的基礎情緒詞彙與生活化肯定語，降低認知負荷。',
+                moodWords: {
+                    red: ['生氣', '緊張', '害怕', '不開心'],
+                    yellow: ['高興', '興奮', '得意', '期待'],
+                    blue: ['傷心', '無聊', '孤單', '累了'],
+                    green: ['平靜', '輕鬆', '安心', '快樂']
+                },
+                placeholder: '寫下你現在在學校面臨的小挑戰（例如：今天的考試、跟同學吵架...）',
+                commentLabel: '寫下今天在學校的小小感受或面臨的挑戰 (匿名)',
+                mockWall: [
+                    { quad: 'yellow', word: '高興', comment: '今天帶了我最喜歡的點心來學校分享！' },
+                    { quad: 'blue', word: '傷心', comment: '我的自動筆剛剛摔壞了，好沮喪...' },
+                    { quad: 'red', word: '緊張', comment: '第一節上台報告，好怕忘記台詞喔。' },
+                    { quad: 'green', word: '平靜', comment: '今天早上有吃飽飽，感覺精神很好！' },
+                    { quad: 'yellow', word: '興奮', comment: '期待下午的體育課！' }
+                ],
+                affirmations: [
+                    "我可以做到任何我專注去完成的事！",
+                    "犯錯沒有關係，它會幫助我學習。",
+                    "我是個很棒的孩子，我今天會更加努力！",
+                    "我感到很安全，而且有人隨時願意幫助我。",
+                    "我很特別，每個人都有屬於自己的優點！"
+                ],
+                iceSuggestions: ['充滿活力的', '平心靜氣的', '開開心心的', '有點緊張的'],
+                questions: [
+                    "剛剛抽到這張卡片時，你心裡想著哪一件事？這句話可以怎麼幫到你？",
+                    "你覺得在班上進行情緒簽到，能幫助你更好地跟同學相處嗎？"
+                ],
+                adaptation: "<b>【國小微調】</b><br>1. 可使用玩偶或情緒牌卡取代文字。<br>2. 每天固定在晨會時間，利用 3 分鐘快速貼貼紙形式簽到。<br>3. 肯定語可以用手指大聲朗讀，更具儀式感。"
+            },
+            junior: {
+                badge: '國中模式',
+                desc: '適合青春期階段，面臨同儕與課業壓力。使用更精確的社交情緒字眼，建立自主調節與同理。',
+                moodWords: {
+                    red: ['焦慮', '煩躁', '沮喪', '憤怒'],
+                    yellow: ['期待', '自信', '充沛', '快樂'],
+                    blue: ['孤單', '失望', '倦怠', '無助'],
+                    green: ['放鬆', '滿意', '安心', '和諧']
+                },
+                placeholder: '分享一件面臨的同儕、學業或考試壓力...（放心，這裡完全匿名）',
+                commentLabel: '分享最近面臨的一項課業、同儕或自我的壓力與感受 (匿名)',
+                mockWall: [
+                    { quad: 'red', word: '焦慮', comment: '明天的英文段考還沒背完，心情很急躁。' },
+                    { quad: 'yellow', word: '自信', comment: '昨天籃球賽終於贏了，這週的練球有回報！' },
+                    { quad: 'blue', word: '失望', comment: '跟最好的朋友有一點小誤會，不知道該怎麼開口講開...' },
+                    { quad: 'green', word: '放鬆', comment: '昨晚把作業都寫完了，今天感覺很充裕。' },
+                    { quad: 'blue', word: '倦怠', comment: '每天上課補習，感覺有點不知道在忙什麼。' }
+                ],
+                affirmations: [
+                    "我有權利感到沮喪，但我也有力量前進。",
+                    "我今天的努力和堅持，都將帶我走得更遠。",
+                    "我不需要完美，我只需要做最真實的自己。",
+                    "我能夠掌控自己的情緒，而不是被情緒掌控。",
+                    "我有能力面對今天的所有挑戰，而且能克服它們。"
+                ],
+                iceSuggestions: ['認真努力的', '有點疲憊的', '期待未來的', '平穩沉著的'],
+                questions: [
+                    "在班級情緒留言牆上，有哪條留言是你感到很有共鳴的？",
+                    "每天花 5 分鐘停下來，對你覺察自己每天的心理狀態有什麼正面改變？"
+                ],
+                adaptation: "<b>【國中微調】</b><br>1. 極度重視匿名性與隱私，避免學生感到在同儕前難為情。<br>2. 可由班級心理輔導股長輪流主持晨間正向肯定語抄寫。<br>3. 鼓勵學生自製專屬的手機情緒桌面。"
+            },
+            senior: {
+                badge: '高中 / 教師工作坊',
+                desc: '適用於高中職學生或教師專業社群，強調高階後設思考、自我關照、正念及如何將 SEL 融入日常課堂。',
+                moodWords: {
+                    red: ['焦慮挫折', '過度緊繃', '情感過濾高', '精疲力竭'],
+                    yellow: ['熱情充沛', '充滿動力', '好奇探索', '成就感'],
+                    blue: ['無力感', '孤立無援', '悲觀沮喪', '目標模糊'],
+                    green: ['自我接納', '和諧平靜', '從容自在', '心存感激']
+                },
+                placeholder: '寫下你在教學現場或工作上正面臨的一大挑戰與當下感受（例如：班級秩序、備課時間不夠...）',
+                commentLabel: '寫下您目前在教學現場或工作上正面臨的一項具體挑戰與感受 (匿名)',
+                mockWall: [
+                    { quad: 'red', word: '過度緊繃', comment: '面臨新學期教案評鑑，加上班級突發衝突，能量接近耗盡。' },
+                    { quad: 'green', word: '和諧平靜', comment: '今天早自習與學生展開了很好的對話，能感到彼此的信任。' },
+                    { quad: 'blue', word: '無力感', comment: '想要推動一些分組活動，但看見部分學生低頭滑手機毫無動力，感到有些受挫。' },
+                    { quad: 'yellow', word: '熱情充沛', comment: '很高興能來參加今天的工作坊，充電的感覺非常棒！' },
+                    { quad: 'green', word: '自我接納', comment: '練習接受「不完美的教學也是一種美」，先照顧好自己再照顧學生。' }
+                ],
+                affirmations: [
+                    "先照顧好自己，才能照顧我的學生與孩子。",
+                    "我所做的教育努力可能現在看不到，但它們正像種子一樣在發芽。",
+                    "當下遇到的挫折只是教學旅程的一部分，我有足夠的智慧來面對。",
+                    "我感到自信、安全，且能真誠地與這個專業社群連結。",
+                    "每個錯誤與不如意都是我與學生共同學習的重要教材。"
+                ],
+                iceSuggestions: ['充滿熱情的', '求知若渴的', '沉思內省的', '積極創新的'],
+                questions: [
+                    "講師進行這個 Check-in 的活動節奏安排，對你有什麼好處？",
+                    "如果要把這個活動帶回您的班上，針對您的學段需要做哪些在地化微調？"
+                ],
+                adaptation: "<b>【高中與教師微調】</b><br>1. 與學科課程（如生命教育、公民、輔導）進行連結。<br>2. 帶領者可引導大家討論「全班情緒溫度圖」，提升全體班級意識。<br>3. 在大考前，此 Check-in 對於降低焦慮（降低情感過濾器）效果顯著。"
+            }
+        };
+
+        // Initialize App Setup
+        window.onload = function() {
+            switchContext('elementary');
+            setupBreathingTimer();
+        };
+
+        // Smooth scroll implementation (Safe for iFrame environments)
+        function scrollToStep(stepId) {
+            const el = document.getElementById(`step-${stepId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Update navigation styles
+            document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+                if (idx === (stepId - 1)) {
+                    btn.classList.add('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-900', 'font-semibold');
+                    btn.classList.remove('border-transparent', 'text-slate-600');
+                    btn.querySelector('span').classList.add('bg-indigo-600', 'text-white');
+                    btn.querySelector('span').classList.remove('bg-slate-200', 'text-slate-600');
+                    btn.querySelector('i').classList.add('text-indigo-400');
+                    btn.querySelector('i').classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-900', 'font-semibold');
+                    btn.classList.add('border-transparent', 'text-slate-600');
+                    btn.querySelector('span').classList.remove('bg-indigo-600', 'text-white');
+                    btn.querySelector('span').classList.add('bg-slate-200', 'text-slate-600');
+                    btn.querySelector('i').classList.remove('text-indigo-400');
+                    btn.querySelector('i').classList.add('text-slate-400');
+                }
+            });
+        }
+
+        // Switch Context (Dynamic Audience Switch)
+        function switchContext(context) {
+            currentContext = context;
+
+            // Reset selection form
+            selectedQuadrant = null;
+            selectedWord = '';
+            document.getElementById('no-selection-msg').classList.remove('hidden');
+            document.getElementById('selection-form').classList.add('hidden');
+            
+            const submitBtn = document.getElementById('btn-submit-mood');
+            submitBtn.disabled = true;
+            submitBtn.className = "w-full py-2.5 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5";
+
+            // Update Header Nav Toggle Active styles
+            const btnElem = document.getElementById('btn-elem');
+            const btnJunior = document.getElementById('btn-junior');
+            const btnSenior = document.getElementById('btn-senior');
+
+            btnElem.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 text-white hover:bg-white/10 flex items-center justify-center gap-1.5";
+            btnJunior.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 text-white hover:bg-white/10 flex items-center justify-center gap-1.5";
+            btnSenior.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 text-white hover:bg-white/10 flex items-center justify-center gap-1.5";
+
+            if (context === 'elementary') {
+                btnElem.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5";
+            } else if (context === 'junior') {
+                btnJunior.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5";
+            } else if (context === 'senior') {
+                btnSenior.className = "flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5";
+            }
+
+            // Update Page Info Badges
+            const activeData = contextData[context];
+            document.getElementById('current-badge').innerText = activeData.badge;
+            document.getElementById('context-desc').innerText = activeData.desc;
+
+            // Update RULER Quadrant UI labels
+            document.getElementById('quad-red-lbl').innerText = activeData.moodWords.red.slice(0, 2).join(' / ');
+            document.getElementById('quad-yellow-lbl').innerText = activeData.moodWords.yellow.slice(0, 2).join(' / ');
+            document.getElementById('quad-blue-lbl').innerText = activeData.moodWords.blue.slice(0, 2).join(' / ');
+            document.getElementById('quad-green-lbl').innerText = activeData.moodWords.green.slice(0, 2).join(' / ');
+
+            // Update Form Input Labels/Placeholders
+            document.getElementById('lbl-comment-box').innerText = activeData.commentLabel;
+            document.getElementById('mood-comment').placeholder = activeData.placeholder;
+            document.getElementById('mood-comment').value = '';
+
+            // Render Wall Comments based on context data
+            renderMoodWall(activeData.mockWall);
+
+            // Set dynamic suggestion chips for step 3 (Icebreaker)
+            const chipsContainer = document.getElementById('ice-adj-suggestions');
+            chipsContainer.innerHTML = '';
+            activeData.iceSuggestions.forEach(adj => {
+                const button = document.createElement('button');
+                button.onclick = () => { document.getElementById('ice-adj').value = adj; };
+                button.className = "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all";
+                button.innerText = adj;
+                chipsContainer.appendChild(button);
+            });
+
+            // Update Step 4 (Debrief section)
+            const debriefQList = document.getElementById('debrief-questions-list');
+            debriefQList.innerHTML = '';
+            activeData.questions.forEach(q => {
+                const li = document.createElement('li');
+                li.innerText = q;
+                debriefQList.appendChild(li);
+            });
+            document.getElementById('adaptation-guide').innerHTML = activeData.adaptation;
+
+            // Flip Card back to front & setup first affirmation
+            const cardEl = document.getElementById('card-element');
+            cardEl.classList.remove('flipped');
+            activeAffirmation = activeData.affirmations[Math.floor(Math.random() * activeData.affirmations.length)];
+            document.getElementById('affirmation-text').innerText = `「${activeAffirmation}」`;
+
+            // Reset Icebreaker output
+            document.getElementById('ice-card-preview').className = "w-full max-w-sm rounded-2xl bg-gradient-to-br from-indigo-100 to-slate-50 p-6 border-2 border-dashed border-indigo-200 text-center relative overflow-hidden min-h-[220px] flex flex-col justify-center items-center";
+            document.getElementById('ice-card-preview').innerHTML = `
+                <div class="text-slate-400 flex flex-col items-center">
+                    <i class="fa-solid fa-id-card-clip text-4xl mb-2"></i>
+                    <p class="text-xs font-medium">填寫左側表單，產生專屬破冰小卡</p>
+                </div>
+            `;
+            document.getElementById('ice-actions').classList.add('hidden');
+
+            updateAnalytics();
+            showToast('已成功切換至 ' + activeData.badge, 'fa-solid fa-arrows-spin', 'bg-teal-500');
+        }
+
+        // Select Quadrant Function
+        function selectQuadrant(quad) {
+            selectedQuadrant = quad;
+            selectedWord = '';
+
+            // Clean borders of quadrants & highlight active quadrant
+            document.querySelectorAll('#quad-red, #quad-yellow, #quad-blue, #quad-green').forEach(q => {
+                q.classList.remove('ring-4', 'ring-offset-2');
+            });
+            document.getElementById(`quad-${quad}`).classList.add('ring-4', 'ring-offset-2');
+
+            // Open the form
+            document.getElementById('no-selection-msg').classList.add('hidden');
+            document.getElementById('selection-form').classList.remove('hidden');
+
+            // Dynamic setup of selected badge style
+            const badge = document.getElementById('selected-badge');
+            let badgeBgClass = '';
+            let badgeText = '';
+
+            if (quad === 'red') {
+                badgeBgClass = 'bg-rulerRed-light text-rulerRed-text border border-rulerRed-border';
+                badgeText = '🔴 高能量 / 負向';
+            } else if (quad === 'yellow') {
+                badgeBgClass = 'bg-rulerYellow-light text-rulerYellow-text border border-rulerYellow-border';
+                badgeText = '🟡 高能量 / 正向';
+            } else if (quad === 'blue') {
+                badgeBgClass = 'bg-rulerBlue-light text-rulerBlue-text border border-rulerBlue-border';
+                badgeText = '🔵 低能量 / 負向';
+            } else if (quad === 'green') {
+                badgeBgClass = 'bg-rulerGreen-light text-rulerGreen-text border border-rulerGreen-border';
+                badgeText = '🟢 低能量 / 正向';
+            }
+
+            badge.className = `inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black ${badgeBgClass}`;
+            badge.innerHTML = badgeText;
+
+            // Generate specific emotion words
+            const wordsListContainer = document.getElementById('dynamic-words-list');
+            wordsListContainer.innerHTML = '';
+            
+            const words = contextData[currentContext].moodWords[quad];
+            words.forEach((word, idx) => {
+                const id = `word-opt-${idx}`;
+                const wordBtn = document.createElement('div');
+                wordBtn.innerHTML = `
+                    <input type="radio" id="${id}" name="emotion-word" value="${word}" onclick="setEmotionWord('${word}')" class="hidden peer">
+                    <label for="${id}" class="block text-center text-xs font-bold py-2 px-3 bg-white border border-slate-200 rounded-lg cursor-pointer transition-all peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-transparent hover:bg-slate-100">
+                        ${word}
+                    </label>
+                `;
+                wordsListContainer.appendChild(wordBtn);
+            });
+
+            // Keep form validation updated
+            checkFormValidity();
+        }
+
+        // Set fine emotion word
+        function setEmotionWord(word) {
+            selectedWord = word;
+            checkFormValidity();
+        }
+
+        // Check if form is ready for submit
+        function checkFormValidity() {
+            const submitBtn = document.getElementById('btn-submit-mood');
+            if (selectedQuadrant && selectedWord) {
+                submitBtn.disabled = false;
+                submitBtn.className = "w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md cursor-pointer transition-all duration-300 flex items-center justify-center gap-1.5";
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = "w-full py-2.5 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5";
+            }
+        }
+
+        // Submit Checkin
+        function submitCheckin() {
+            if (!selectedQuadrant || !selectedWord) return;
+
+            const commentVal = document.getElementById('mood-comment').value.trim() || '（匿名者僅簽到心情，無留言）';
+            
+            // Add user's custom card to the local wall list
+            const currentMockWall = contextData[currentContext].mockWall;
+            currentMockWall.unshift({
+                quad: selectedQuadrant,
+                word: selectedWord,
+                comment: commentVal
+            });
+
+            // Update Wall and Analytics
+            renderMoodWall(currentMockWall);
+            
+            votes[selectedQuadrant] += 1;
+            updateAnalytics();
+
+            // Notify user & trigger automatic focus on Step 2
+            showToast('您的匿名情緒已成功簽到！已匯入儀表板與留言牆。', 'fa-solid fa-circle-check', 'bg-emerald-500');
+
+            // Reset Form
+            selectedQuadrant = null;
+            selectedWord = '';
+            document.getElementById('no-selection-msg').classList.remove('hidden');
+            document.getElementById('selection-form').classList.add('hidden');
+            document.querySelectorAll('#quad-red, #quad-yellow, #quad-blue, #quad-green').forEach(q => {
+                q.classList.remove('ring-4', 'ring-offset-2');
+            });
+            document.getElementById('btn-submit-mood').disabled = true;
+            document.getElementById('btn-submit-mood').className = "w-full py-2.5 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5";
+            
+            // Delay auto scroll to next step just a bit to let them view the change on wall
+            setTimeout(() => {
+                scrollToStep(2);
+            }, 1000);
+        }
+
+        // Draw Affirmation Card
+        function drawAffirmationCard() {
+            const cardEl = document.getElementById('card-element');
+            // Flip back first to allow animation effect
+            cardEl.classList.remove('flipped');
+
+            setTimeout(() => {
+                const list = contextData[currentContext].affirmations;
+                activeAffirmation = list[Math.floor(Math.random() * list.length)];
+                document.getElementById('affirmation-text').innerText = `「${activeAffirmation}」`;
+                cardEl.classList.add('flipped');
+                showToast('已隨機為你抽取一張正向力量卡！', 'fa-solid fa-star', 'bg-violet-600');
+            }, 300);
+        }
+
+        // Set Custom Affirmation Card
+        function setCustomAffirmation() {
+            const val = document.getElementById('custom-affirmation').value.trim();
+            if (!val) {
+                showToast('請輸入一點字再生成卡片喔！', 'fa-solid fa-triangle-exclamation', 'bg-amber-500');
+                return;
+            }
+
+            const cardEl = document.getElementById('card-element');
+            cardEl.classList.remove('flipped');
+
+            setTimeout(() => {
+                activeAffirmation = val;
+                document.getElementById('affirmation-text').innerText = `「${activeAffirmation}」`;
+                cardEl.classList.add('flipped');
+                document.getElementById('custom-affirmation').value = '';
+                showToast('您自訂的正向激勵語已成功加載至卡片！', 'fa-solid fa-wand-magic-sparkles', 'bg-indigo-600');
+            }, 300);
+        }
+
+        // 4-7-8 Breathing Loop
+        function toggleBreathing() {
+            const btn = document.getElementById('btn-breathing');
+            const circle = document.getElementById('breath-circle');
+            const breathText = document.getElementById('breath-text');
+            const breathSub = document.getElementById('breath-subtext');
+
+            if (breathingInterval) {
+                // Stop breathing
+                clearInterval(breathingInterval);
+                breathingInterval = null;
+                breathingState = 'idle';
+                document.getElementById('breath-inner-timer').innerText = '00';
+                circle.style.transform = 'scale(1)';
+                circle.style.backgroundColor = 'rgba(45, 212, 191, 0.4)';
+                breathText.innerText = '準備好，點擊下方按鈕';
+                breathSub.innerText = '深呼吸，將專注力帶回自己身上';
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> 開始呼吸練習 (60秒)`;
+                btn.className = "mt-5 px-6 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2";
+                showToast('已暫停呼吸靜心練習。', 'fa-solid fa-circle-info', 'bg-slate-700');
+            } else {
+                // Start breathing (60 seconds total loop)
+                breathingTimer = 60;
+                document.getElementById('breath-inner-timer').innerText = breathingTimer;
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> 停止呼吸練習`;
+                btn.className = "mt-5 px-6 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2";
+                
+                showToast('深呼吸，跟隨畫面的提示進行調節', 'fa-solid fa-circle-play', 'bg-teal-600');
+                
+                breathingState = 'inhale';
+                runBreathingCycle(4, '吸氣...', '隨著圓圈擴大，慢慢吸飽空氣...', 1.7, 'rgba(45, 212, 191, 0.7)');
+
+                breathingInterval = setInterval(() => {
+                    breathingTimer--;
+                    document.getElementById('breath-inner-timer').innerText = breathingTimer < 10 ? '0' + breathingTimer : breathingTimer;
+                    
+                    if (breathingTimer <= 0) {
+                        toggleBreathing(); // automatically stop at 60s
+                        showToast('恭喜完成 1 分鐘正念靜心，大腦已經重新充飽電！', 'fa-solid fa-circle-check', 'bg-emerald-500');
+                        return;
+                    }
+
+                    // Cycle Handler based on elapsed seconds
+                    // 1 Cycle = 4s inhale + 7s hold + 8s exhale = 19 seconds
+                    const currentPos = (60 - breathingTimer) % 19;
+                    if (currentPos === 0) {
+                        breathingState = 'inhale';
+                        runBreathingCycle(4, '吸氣...', '隨著圓圈擴大，慢慢吸飽空氣...', 1.7, 'rgba(45, 212, 191, 0.7)');
+                    } else if (currentPos === 4) {
+                        breathingState = 'hold';
+                        runBreathingCycle(7, '屏息...', '屏住呼吸，感受身體內安寧的能量...', 1.7, 'rgba(234, 179, 8, 0.5)');
+                    } else if (currentPos === 11) {
+                        breathingState = 'exhale';
+                        runBreathingCycle(8, '緩緩吐氣...', '隨著圓圈縮小，將壓力慢慢釋放...', 0.9, 'rgba(14, 165, 233, 0.5)');
+                    }
+                }, 1000);
+            }
+        }
+
+        function runBreathingCycle(seconds, text, subText, scale, color) {
+            const circle = document.getElementById('breath-circle');
+            const breathText = document.getElementById('breath-text');
+            const breathSub = document.getElementById('breath-subtext');
+
+            breathText.innerText = text;
+            breathSub.innerText = subText;
+            
+            circle.style.transitionDuration = `${seconds}s`;
+            circle.style.transform = `scale(${scale})`;
+            circle.style.backgroundColor = color;
+        }
+
+        function setupBreathingTimer() {
+            document.getElementById('breath-inner-timer').innerText = '00';
+        }
+
+        // Generate custom Icebreaker Card
+        function generateIceCard() {
+            const name = document.getElementById('ice-name').value.trim();
+            const adj = document.getElementById('ice-adj').value.trim();
+
+            if (!name || !adj) {
+                showToast('名字與形容詞都是必填的喔！', 'fa-solid fa-triangle-exclamation', 'bg-amber-500');
+                return;
+            }
+
+            // Decide card theme based on current quadrant if available, otherwise beautiful default
+            let cardBg = "bg-gradient-to-br from-indigo-500 to-violet-600 text-white";
+            let textColor = "text-yellow-200";
+            let borderStyle = "border-2 border-indigo-400";
+
+            const preview = document.getElementById('ice-card-preview');
+            preview.className = `w-full max-w-sm rounded-2xl ${cardBg} p-6 ${borderStyle} text-center relative overflow-hidden min-h-[220px] flex flex-col justify-between shadow-lg`;
+            
+            // Build card contents
+            preview.innerHTML = `
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                <div class="absolute -left-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                
+                <div class="flex items-center justify-between border-b border-white/20 pb-2 w-full">
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full"><i class="fa-regular fa-id-badge mr-1"></i> SEL 破冰卡</span>
+                    <span class="text-[10px] text-white/80">課堂連結中</span>
+                </div>
+
+                <div class="my-4 text-center">
+                    <p class="text-xs text-indigo-100 font-medium mb-1">同學/夥伴們好！我是</p>
+                    <h3 class="text-xl font-black tracking-wide">${adj} <span class="text-2xl text-yellow-300 block sm:inline">${name}</span></h3>
+                </div>
+
+                <div class="bg-black/20 rounded-xl p-2.5 text-left text-xs w-full">
+                    <p class="text-white/70 font-semibold mb-1 text-[10px] uppercase tracking-wider"><i class="fa-solid fa-quote-left mr-1 text-yellow-300"></i> 今日心靈激勵：</p>
+                    <p class="font-bold leading-relaxed text-yellow-100 italic">「${activeAffirmation || '做最真實的自己，我今天會更加努力！'}」</p>
+                </div>
+
+                <div class="text-[9px] text-indigo-200 mt-2 flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-hands-clapping"></i> <span>期待今天與你的交流與學習！</span>
+                </div>
+            `;
+
+            document.getElementById('ice-actions').classList.remove('hidden');
+            showToast('專屬破冰名片已生成！您可以複製內容分享囉。', 'fa-solid fa-id-card', 'bg-emerald-500');
+        }
+
+        // Copy Icebreaker Text to clipboard
+        function copyIceCardText() {
+            const name = document.getElementById('ice-name').value.trim();
+            const adj = document.getElementById('ice-adj').value.trim();
+            const affirmation = activeAffirmation || '做最真實的自己，我今天會更加努力！';
+
+            const txt = `【SEL 破冰問候卡】\n嗨！我是「${adj} ${name}」\n今天我送給自己的正向自我激勵語是：\n「${affirmation}」\n期待今天與你建立溫暖的連結，互相扶持前進！`;
+
+            // Copy utilizing fallback method
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = txt;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            showToast('破冰小卡文字已複製到剪貼簿！可貼到聊天室、共享文件或簡報中。', 'fa-solid fa-clipboard-check', 'bg-emerald-600');
+        }
+
+        // Render wall comments
+        function renderMoodWall(comments) {
+            const container = document.getElementById('mood-wall');
+            container.innerHTML = '';
+
+            // Slice to show only latest 6 comments
+            comments.slice(0, 6).forEach(comment => {
+                let badgeStyle = '';
+                let borderStyle = '';
+                let bgStyle = '';
+
+                if (comment.quad === 'red') {
+                    badgeStyle = 'bg-rulerRed-bg text-white';
+                    borderStyle = 'border-l-4 border-l-rulerRed-bg';
+                    bgStyle = 'bg-red-50/50';
+                } else if (comment.quad === 'yellow') {
+                    badgeStyle = 'bg-rulerYellow-bg text-slate-900';
+                    borderStyle = 'border-l-4 border-l-rulerYellow-bg';
+                    bgStyle = 'bg-yellow-50/50';
+                } else if (comment.quad === 'blue') {
+                    badgeStyle = 'bg-rulerBlue-bg text-white';
+                    borderStyle = 'border-l-4 border-l-rulerBlue-bg';
+                    bgStyle = 'bg-blue-50/50';
+                } else if (comment.quad === 'green') {
+                    badgeStyle = 'bg-rulerGreen-bg text-white';
+                    borderStyle = 'border-l-4 border-l-rulerGreen-bg';
+                    bgStyle = 'bg-green-50/50';
+                }
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border border-slate-100 ${borderStyle} ${bgStyle} shadow-sm flex flex-col justify-between transition-all duration-300 hover:translate-y-[-2px]`;
+                card.innerHTML = `
+                    <div class="mb-2">
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded-full ${badgeStyle}">${comment.word}</span>
+                    </div>
+                    <p class="text-xs font-medium text-slate-700 leading-relaxed break-all">「 ${comment.comment} 」</p>
+                    <div class="mt-2 text-right">
+                        <span class="text-[9px] text-slate-400 font-bold"><i class="fa-regular fa-clock"></i> 剛剛 (匿名)</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Update Statistics Bar Charts
+        function updateAnalytics() {
+            const total = votes.red + votes.yellow + votes.blue + votes.green;
+            document.getElementById('vote-count-badge').innerText = `已簽到: ${total} 人`;
+
+            const redPct = Math.round((votes.red / total) * 100);
+            const yellowPct = Math.round((votes.yellow / total) * 100);
+            const bluePct = Math.round((votes.blue / total) * 100);
+            const greenPct = Math.round((votes.green / total) * 100);
+
+            // Update percentage texts
+            document.getElementById('stat-red').innerText = `${redPct}%`;
+            document.getElementById('stat-yellow').innerText = `${yellowPct}%`;
+            document.getElementById('stat-blue').innerText = `${bluePct}%`;
+            document.getElementById('stat-green').innerText = `${greenPct}%`;
+
+            // Update bar widths
+            document.getElementById('bar-red').style.width = `${redPct}%`;
+            document.getElementById('bar-yellow').style.width = `${yellowPct}%`;
+            document.getElementById('bar-blue').style.width = `${bluePct}%`;
+            document.getElementById('bar-green').style.width = `${greenPct}%`;
+        }
+
+        // Export micro lesson plan to clipboard
+        function exportLessonPlan() {
+            const activeData = contextData[currentContext];
+            const affirmationsText = activeData.affirmations.map((a, i) => `${i+1}. ${a}`).join('\n');
+
+            const lessonPlan = `====================================
+【SEL 微型教學法：5分鐘數位情緒簽到與正向激勵方案】
+年級情境：${activeData.badge}
+------------------------------------
+對應核心能力：自我覺察 (Self-awareness)、關係建立與人際技巧
+活動時間：5-10 分鐘
+
+📝 活動步驟指南：
+
+[第一步：匿名情緒儀表板簽到 (2分鐘)]
+- 講師引導學生使用數位 Mood Meter 依「能量」與「愉悅」定位情緒。
+- 學生練習使用精準詞彙辨識，並留下面臨的挑戰。
+- 焦點詞彙庫：
+  * 高能量/負向：${activeData.moodWords.red.join('、')}
+  * 高能量/正向：${activeData.moodWords.yellow.join('、')}
+  * 低能量/負向：${activeData.moodWords.blue.join('、')}
+  * 低能量/正向：${activeData.moodWords.green.join('、')}
+
+[第二步：自我肯定卡與 4-7-8 呼吸靜心 (2分鐘)]
+- 帶領 4秒吸氣、7秒屏息、8秒吐氣之循環呼吸。
+- 抽取/建立正向肯定語。精選例句：
+${affirmationsText}
+
+[第三步：創意破冰與相互問候 (3分鐘)]
+- 學生組成兩人一組，使用形容詞加名字（如：充滿熱情的 Zara）自我介紹。
+- 彼此分享今日抽取的自我激勵語及其背後原因。
+
+[第四步：後設反思引導 (2分鐘)]
+- 提問 1：${activeData.questions[0]}
+- 提問 2：${activeData.questions[1]}
+
+💡 本年級微調與轉化叮嚀：
+${activeData.adaptation.replace(/<br>/g, '\n').replace(/<b>/g, '').replace(/<\/b>/g, '')}
+====================================`;
+
+            // Save to clipboard
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = lessonPlan;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            showToast('微型教案已複製到剪貼簿！可直接貼在簡報或備課檔案中。', 'fa-solid fa-copy', 'bg-indigo-600');
+        }
+
+        // Custom Toast system
+        function showToast(msg, iconClass, colorClass) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const iconWrapper = document.getElementById('toast-icon-wrapper');
+
+            toastMsg.innerText = msg;
+            iconWrapper.className = `w-6 h-6 rounded-full flex items-center justify-center text-xs text-white ${colorClass}`;
+            iconWrapper.innerHTML = `<i class="${iconClass}"></i>`;
+
+            // Transition in
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            // Automatic fadeout after 4 seconds
+            setTimeout(() => {
+                dismissToast();
+            }, 4000);
+        }
+
+        function dismissToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }
+    </script>
+</body>
+</html>
